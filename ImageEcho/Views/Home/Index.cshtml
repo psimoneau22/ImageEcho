@@ -1,0 +1,18 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+}
+
+
+<div class="dropzone"></div>
+
+<script>
+    $('.dropzone').dropzone({
+        url: "~/home/upload",
+        autoProcessQueue: false,
+        init: function () {
+            this.on("addedfile", function (file) { console.log('addedfile'); console.log(file); });
+            this.on("thumbnail", function (file, dataUrl) { console.log('thumbnail'); console.log(file); console.log(dataUrl); });
+        }
+    })
+</script>
