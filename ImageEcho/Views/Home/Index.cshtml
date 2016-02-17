@@ -7,12 +7,39 @@
 <div class="dropzone"></div>
 
 <script>
+    Dropzone.autoDiscover = false;
     $('.dropzone').dropzone({
-        url: "~/home/upload",
-        autoProcessQueue: false,
+        url: "/home/upload",
         init: function () {
-            this.on("addedfile", function (file) { console.log('addedfile'); console.log(file); });
-            this.on("thumbnail", function (file, dataUrl) { console.log('thumbnail'); console.log(file); console.log(dataUrl); });
+            window.dropzone = this;
+            this.on("sending", function (file, xhr, formData) {
+                
+                console.log('sending');
+
+                var dataUrl = window.URL.createObjectURL(file);
+                var canvas = document.createElement('canvas');
+                var context = canvas.getContext('2d');
+                canvas.setAttribute('width', 50);
+                canvas.setAttribute('height', 50);
+                document.body.appendChild(canvas);
+
+                // load image from data url
+                var imageObj = new Image();
+                imageObj.onload = function () {
+                    context.drawImage(this, 0, 0);
+                };
+
+                imageObj.src = dataUrl;                
+                
+
+                //var dataUrlFull = canvas.toDataURL("image/jpeg", 1);
+                //var dataUrlMedium = canvas.toDataURL("image/jpeg", .5);
+                var dataUrlLow = canvas.toDataURL("image/jpeg", .1);
+                
+                //new FormData().append("ful", dataUrlFull);
+                //new FormData().append("med", dataUrlMedium);
+                formData.append("low", dataUrlLow);
+            });
         }
     })
 </script>
