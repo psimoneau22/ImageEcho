@@ -1,44 +1,94 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Index";
 }
-
 
 <div class="dropzone"></div>
 
 <script>
+    function dataURLToBlob(dataURL) {
+        var BASE64_MARKER = ';base64,';
+        if (dataURL.indexOf(BASE64_MARKER) == -1) {
+            var parts = dataURL.split(',');
+            var contentType = parts[0].split(':')[1];
+            var raw = decodeURIComponent(parts[1]);
+
+            return new Blob([raw], { type: contentType });
+        }
+
+        var parts = dataURL.split(BASE64_MARKER);
+        var contentType = parts[0].split(':')[1];
+        var raw = window.atob(parts[1]);
+        var uInt8Array = binaryToArray(raw);
+
+        return new Blob([uInt8Array], { type: contentType });
+    };
+
+    function binaryToArray(binaryData) {
+        var uInt8Array = new Uint8Array(binaryData.length);
+        for (var i = 0; i < binaryData.length; ++i) {
+            uInt8Array[i] = binaryData.charCodeAt(i);
+        }
+        return uInt8Array;
+    }
+
+    // quality factor is a number from 0 to 1     
+    function resizeImage(imageFile, maxWidth, maxHeight, qualityFactor, callback) {
+        var imageObj = new Image();
+        imageObj.onload = function (tt) {
+
+            var canvas = document.createElement('canvas');
+            canvas.width = imageObj.width;
+            canvas.height = imageObj.height;
+
+            var context = canvas.getContext('2d');
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            var width = imageObj.width;
+            var height = imageObj.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } 
+            else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            context.drawImage(imageObj, 0, 0, width, height);
+
+            callback(dataURLToBlob(canvas.toDataURL("image/jpeg", qualityFactor)));
+        }
+        imageObj.src = window.URL.createObjectURL(imageFile);
+    }
+
     Dropzone.autoDiscover = false;
     $('.dropzone').dropzone({
         url: "/home/upload",
+        autoProcessQueue: false,
         init: function () {
-            window.dropzone = this;
+            var self = window.dropzone = this;
+            this.on("addedfile", function (file) {
+
+                resizeImage(file, 800, 600, .7, function (optimizedFile) {
+                    file.optimizedFile = optimizedFile;
+                    self.processQueue();
+                });
+            });
             this.on("sending", function (file, xhr, formData) {
-                
-                console.log('sending');
-
-                var dataUrl = window.URL.createObjectURL(file);
-                var canvas = document.createElement('canvas');
-                var context = canvas.getContext('2d');
-                canvas.setAttribute('width', 50);
-                canvas.setAttribute('height', 50);
-                document.body.appendChild(canvas);
-
-                // load image from data url
-                var imageObj = new Image();
-                imageObj.onload = function () {
-                    context.drawImage(this, 0, 0);
-                };
-
-                imageObj.src = dataUrl;                
-                
-
-                //var dataUrlFull = canvas.toDataURL("image/jpeg", 1);
-                //var dataUrlMedium = canvas.toDataURL("image/jpeg", .5);
-                var dataUrlLow = canvas.toDataURL("image/jpeg", .1);
-                
-                //new FormData().append("ful", dataUrlFull);
-                //new FormData().append("med", dataUrlMedium);
-                formData.append("low", dataUrlLow);
+                formData.append("optimizedFile", file.optimizedFile);                
+            });
+            this.on("success", function (file, response) {
+                var uInt8Array = binaryToArray(response);
+                var blob = new Blob([uInt8Array], { type: "image/jpeg" });
+                var img = document.createElement("img");
+                img.src = window.URL.createObjectURL(blob);
+                document.body.appendChild(img);                
             });
         }
     })
