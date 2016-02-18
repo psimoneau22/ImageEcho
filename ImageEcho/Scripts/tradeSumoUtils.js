@@ -1,4 +1,4 @@
-﻿(function () {
+﻿var tradeSumoUtils = (function () {
     
     function dataURLToFile(dataURL, filename) {
         var BASE64_MARKER = ';base64,';
@@ -70,7 +70,7 @@
         imageObj.src = window.URL.createObjectURL(imageFile);
     }
 
-    window.tradeSumoUtils = {
+    return {
         resizeImage: resizeImage
     };
 })();
