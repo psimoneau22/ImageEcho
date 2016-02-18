@@ -109,6 +109,7 @@
     <Content Include="Content\Site.css" />
     <Content Include="Scripts\dropzone.min.js" />
     <Content Include="Scripts\jquery.min.js" />
+    <Content Include="Scripts\tradeSumoUtils.js" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>

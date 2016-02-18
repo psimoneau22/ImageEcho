@@ -1,94 +1,81 @@
 ﻿@{
     ViewBag.Title = "Index";
 }
+<script src="~/Scripts/tradeSumoUtils.js"></script>
 
 <div class="dropzone"></div>
+<table id="resultsTable"></table>
+
+<style>
+    .result img {
+        width: 100%;
+        height: auto;
+        max-width: 480px;
+        padding: 0 20px;
+    }
+
+    .result span {
+        display:block;
+        text-align:center;
+    }
+</style>
 
 <script>
-    function dataURLToBlob(dataURL) {
-        var BASE64_MARKER = ';base64,';
-        if (dataURL.indexOf(BASE64_MARKER) == -1) {
-            var parts = dataURL.split(',');
-            var contentType = parts[0].split(':')[1];
-            var raw = decodeURIComponent(parts[1]);
 
-            return new Blob([raw], { type: contentType });
-        }
+    function displayResults(original, optimized, qualityFactor) {
+        var resultTable = document.getElementById("resultsTable");
+        var row = document.createElement("tr");
+        row.appendChild(getImage(original, "Original"));
+        row.appendChild(getImage(optimized, "Optimized", qualityFactor));
 
-        var parts = dataURL.split(BASE64_MARKER);
-        var contentType = parts[0].split(':')[1];
-        var raw = window.atob(parts[1]);
-        var uInt8Array = binaryToArray(raw);
-
-        return new Blob([uInt8Array], { type: contentType });
-    };
-
-    function binaryToArray(binaryData) {
-        var uInt8Array = new Uint8Array(binaryData.length);
-        for (var i = 0; i < binaryData.length; ++i) {
-            uInt8Array[i] = binaryData.charCodeAt(i);
-        }
-        return uInt8Array;
+        resultsTable.insertBefore(row, resultsTable.firstChild);
     }
 
-    // quality factor is a number from 0 to 1     
-    function resizeImage(imageFile, maxWidth, maxHeight, qualityFactor, callback) {
-        var imageObj = new Image();
-        imageObj.onload = function (tt) {
-
-            var canvas = document.createElement('canvas');
-            canvas.width = imageObj.width;
-            canvas.height = imageObj.height;
-
-            var context = canvas.getContext('2d');
-            context.clearRect(0, 0, canvas.width, canvas.height);
-
-            var width = imageObj.width;
-            var height = imageObj.height;
-
-            if (width > height) {
-                if (width > maxWidth) {
-                    height *= maxWidth / width;
-                    width = maxWidth;
-                }
-            } 
-            else {
-                if (height > maxHeight) {
-                    width *= maxHeight / height;
-                    height = maxHeight;
-                }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            context.drawImage(imageObj, 0, 0, width, height);
-
-            callback(dataURLToBlob(canvas.toDataURL("image/jpeg", qualityFactor)));
+    function getImage(imageFile, caption, qualityFactor) {
+        var result = document.createElement("td");
+        result.className = "result";
+        var img = document.createElement("img");
+        img.src = window.URL.createObjectURL(imageFile);
+        var captionSpan = document.createElement("span");
+        captionSpan.textContent = caption + ": Size = " + imageFile.size;
+        if (qualityFactor) {
+            captionSpan.textContent += ": QualityFactor = " + qualityFactor;
         }
-        imageObj.src = window.URL.createObjectURL(imageFile);
-    }
+        result.appendChild(img);
+        result.appendChild(captionSpan);
+        return result;
+    }    
 
     Dropzone.autoDiscover = false;
     $('.dropzone').dropzone({
         url: "/home/upload",
         autoProcessQueue: false,
         init: function () {
-            var self = window.dropzone = this;
+            var self = this;
             this.on("addedfile", function (file) {
 
-                resizeImage(file, 800, 600, .7, function (optimizedFile) {
+                // change these settings to alter the quality;
+                var settings = {                    
+                    maxWidth: 800,
+                    maxHeight: 600,
+                    qualityFactor: .5
+                }
+
+                tradeSumoUtils.resizeImage(file, settings, function (optimizedFile) {
+                    
+                    // display the results:
+                    displayResults(file, optimizedFile, settings.qualityFactor);
+
+                    // attach this to our file so we can send it with our send function
                     file.optimizedFile = optimizedFile;
-                    self.processQueue();
+                    self.processQueue(); // send it to the server
                 });
             });
             this.on("sending", function (file, xhr, formData) {
                 formData.append("optimizedFile", file.optimizedFile);                
             });
             this.on("success", function (file, response) {
-                var uInt8Array = binaryToArray(response);
-                var blob = new Blob([uInt8Array], { type: "image/jpeg" });
-                var img = document.createElement("img");
-                img.src = window.URL.createObjectURL(blob);
-                document.body.appendChild(img);                
+                console.log("successfully sent files to server, check the images folder");
             });
         }
     })
