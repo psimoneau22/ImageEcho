@@ -13,13 +13,15 @@ namespace ImageEcho.Controllers
         [HttpPost]
         public ActionResult Upload()
         {
-            foreach(string fileName in Request.Files)
-            {                
-                // we are sending up the original file and an optimized file, the optimized file is the first one                
-                HttpPostedFileBase file = Request.Files[fileName];
-                byte[] fileBytes = new byte[file.ContentLength];
-                file.InputStream.Read(fileBytes, 0, file.ContentLength);
-                return File(fileBytes, file.ContentType, file.FileName);
+            if (Request.Files.Count > 0)
+            {
+                foreach (string fileName in Request.Files)
+                {
+                    // we are sending up the original file and an optimized file, the optimized file is the first one                
+                    HttpPostedFileBase file = Request.Files[fileName];
+                    file.SaveAs(Path.Combine(Server.MapPath("~/Images/"), DateTime.Now.ToString("hhmmss") + file.FileName));
+                }
+                return new HttpStatusCodeResult(HttpStatusCode.OK);
             }
 
             return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
