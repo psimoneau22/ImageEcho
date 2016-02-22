@@ -2,3 +2,4 @@ packages
 ImageEcho/Images
 bin
 obj
+*.suo
